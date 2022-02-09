@@ -10,7 +10,7 @@ jobs:
       - checkout
       - run:
           name: Analyze on SonarCloud
-          command: mvn clean test sonar:sonar -Dsonar.projectKey=massimostanzione_openjpa --projects .,openjpa-jdbc,openjpa-lib
+          command: mvn clean test sonar:sonar pitest:mutationCoverage -Dsonar.projectKey=massimostanzione_openjpa --projects .,openjpa-jdbc,openjpa-lib
       - run:
           name: Prepare artifacts (Mutation testing)
           command: |

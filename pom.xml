@@ -1759,7 +1759,6 @@
                         <executions>
                             <execution>
                                 <id>pit-report</id>
-                                <!-- optional, this example attached the goal into mvn test phase -->
                                 <phase>test</phase>
                                 <goals>
                                     <goal>mutationCoverage</goal>
