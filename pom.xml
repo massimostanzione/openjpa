@@ -1750,11 +1750,33 @@
                                     <goal>report</goal>
                                 </goals>
                             </execution>
-
                         </executions>
                     </plugin>
-
-
+                    <plugin>
+                        <groupId>org.pitest</groupId>
+                        <artifactId>pitest-maven</artifactId>
+                        <version>1.4.3</version>
+                        <executions>
+                            <execution>
+                                <id>pit-report</id>
+                                <!-- optional, this example attached the goal into mvn test phase -->
+                                <phase>test</phase>
+                                <goals>
+                                    <goal>mutationCoverage</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <targetClasses>
+                                <param>org.apache.openjpa.jdbc.*</param>
+                                <param>org.apache.openjpa.lib.*</param>
+                            </targetClasses>
+                            <targetTests>
+                                <param>org.apache.openjpa.jdbc.*</param>
+                                <param>org.apache.openjpa.lib.*</param>
+                            </targetTests>
+                        </configuration>
+                    </plugin>
                 </plugins>
             </build>
         </profile>
