@@ -5,10 +5,7 @@ import org.apache.openjpa.jdbc.identifier.DBIdentifier.DBIdentifierType;
 import org.apache.openjpa.jdbc.identifier.DBIdentifierUtil;
 import org.apache.openjpa.jdbc.identifier.DBIdentifierUtilImpl;
 import org.apache.openjpa.jdbc.identifier.DefaultIdentifierConfiguration;
-import org.apache.openjpa.jdbc.schema.Column;
-import org.apache.openjpa.jdbc.schema.NameSet;
-import org.apache.openjpa.jdbc.schema.SchemaGroup;
-import org.apache.openjpa.jdbc.schema.Table;
+import org.apache.openjpa.jdbc.schema.*;
 import org.apache.openjpa.lib.identifier.IdentifierConfiguration;
 import org.apache.openjpa.lib.identifier.IdentifierRule;
 import org.junit.After;
@@ -34,6 +31,7 @@ public class MakeValidIdCheckTest {
     private static int maxLen;
     private static boolean checkForUniqueness;
     private static String expectedBehavior;
+    private static IdentifierConfiguration conf;
 
     // Class under test.
     private DBIdentifierUtil util;
@@ -49,14 +47,16 @@ public class MakeValidIdCheckTest {
         private NameSet set;
         private int maxLen;
         private boolean checkForUniqueness;
-        private String expected;
+        private String expectedBehavior;
+        private IdentifierConfiguration conf;
 
-        public MakeValidIdCheckParams(DBIdentifier sname, NameSet set, int maxLen, boolean checkForUniqueness, String expectedBehavior) {
+        public MakeValidIdCheckParams(DBIdentifier sname, NameSet set, int maxLen, boolean checkForUniqueness, String expectedBehavior, IdentifierConfiguration conf) {
             this.sname = sname;
             this.set = set;
             this.maxLen = maxLen;
             this.checkForUniqueness = checkForUniqueness;
-            this.expected = expectedBehavior;
+            this.expectedBehavior = expectedBehavior;
+            this.conf=conf;
         }
     }
 
@@ -74,7 +74,8 @@ public class MakeValidIdCheckTest {
         this.set = params.set;
         this.maxLen = params.maxLen;
         this.checkForUniqueness = params.checkForUniqueness;
-        this.expectedBehavior = params.expected;
+        this.expectedBehavior = params.expectedBehavior;
+        this.conf=params.conf;
     }
 
     /**
@@ -85,8 +86,6 @@ public class MakeValidIdCheckTest {
     @Before
     public void setup() {
         this.util = new DBIdentifierUtilImpl();
-        mockedIdCImpl = generateDIdCMock();
-        this.util.setIdentifierConfiguration(mockedIdCImpl);
     }
 
     /**
@@ -136,6 +135,7 @@ public class MakeValidIdCheckTest {
      */
     @Parameterized.Parameters
     public static Collection<MakeValidIdCheckParams[]> getTestParameters() {
+        // parametri per sname
         DBIdentifier validId = DBIdentifier.newIdentifier("valid", DBIdentifierType.DEFAULT, true);
         DBIdentifier emptyId = DBIdentifier.newIdentifier("", DBIdentifierType.DEFAULT, true);
         DBIdentifier nullId = DBIdentifier.newIdentifier(null, DBIdentifierType.DEFAULT, true);
@@ -143,33 +143,64 @@ public class MakeValidIdCheckTest {
 
         SchemaGroup emptyNS = new SchemaGroup();
         SchemaGroup validNS = new SchemaGroup();
+        Schema schema=new Schema();
         Table tab = new Table();
         tab.setIdentifier(DBIdentifier.newIdentifier("VALID", DBIdentifierType.TABLE, true));
         Column col = new Column();
         col.setIdentifier(DBIdentifier.newIdentifier("Column", DBIdentifierType.COLUMN, true));
         tab.addColumn(col.getIdentifier());
-        validNS.addSchema(tab.getIdentifier());
-
+        validNS.addSchema(schema.getIdentifier());
+        validNS.getSchema(schema.getIdentifier()).addTable(tab.getIdentifier());
         Random rand = new Random();
         int len = validId.getName().length();
+
+        // Enhance coverage (adequacy):
+        Sequence seqa = new Sequence();
+        seqa.setIdentifier(DBIdentifier.newIdentifier("sequence", DBIdentifierType.SEQUENCE, true));
+        validNS.getSchema(schema.getIdentifier()).addSequence(seqa.getIdentifier());
+        for(int i=0;i<10;i++) {
+            Sequence seq = new Sequence();
+            seq.setIdentifier(DBIdentifier.newIdentifier("sequenc" + i, DBIdentifierType.SEQUENCE, true));
+            validNS.getSchema(schema.getIdentifier()).addSequence(seq.getIdentifier());
+            seq.setIdentifier(DBIdentifier.newIdentifier("sequen" + i, DBIdentifierType.SEQUENCE, true));
+            validNS.getSchema(schema.getIdentifier()).addSequence(seq.getIdentifier());
+        }
+
+        DBIdentifier delimitedId = DBIdentifier.newIdentifier("\"dElImItEd\"",                DBIdentifierType.DEFAULT, true);
+        IdentifierConfiguration defaultConf = generateDIdCMock();
+        IdentifierConfiguration upperConf= Mockito.spy(DefaultIdentifierConfiguration.class);
+        when(upperConf.getDelimitedCase()).thenReturn(DBIdentifierUtil.CASE_UPPER);
+        IdentifierConfiguration lowerConf= Mockito.spy(DefaultIdentifierConfiguration.class);
+        when(lowerConf.getDelimitedCase()).thenReturn(DBIdentifierUtil.CASE_LOWER);
+
         List<MakeValidIdCheckParams[]> args = Arrays.asList(new MakeValidIdCheckParams[][]{
-                {new MakeValidIdCheckParams(validId, validNS, -1, false, oracle(validId.getName(), 0))},
-                {new MakeValidIdCheckParams(validId, validNS, 0, false, oracle(validId.getName(), 0))},
-                {new MakeValidIdCheckParams(validId, validNS, 1, false, oracle(validId.getName(), 1))},
-                {new MakeValidIdCheckParams(validId, validNS, len - 1, false, oracle(validId.getName(), len - 1))},
-                {new MakeValidIdCheckParams(validId, validNS, len + 1, false, oracle(validId.getName(), 0))},
-                {new MakeValidIdCheckParams(validId, validNS, len, true, "VALI1")},
-                {new MakeValidIdCheckParams(validId, emptyNS, len, true, oracle(validId.getName(), len))},
-                {new MakeValidIdCheckParams(reservedId, validNS, 9, false, "RESERVED0")},
-                {new MakeValidIdCheckParams(emptyId, validNS, len, false, oracle(emptyId.getName(), 0))},
-                {new MakeValidIdCheckParams(nullId, validNS, len, false, FAIL)},
-                {new MakeValidIdCheckParams(validId, validNS, len, false, oracle(validId.getName(), 0))},
+                {new MakeValidIdCheckParams(validId, validNS, -1, false, oracle(validId.getName(), 0),defaultConf)},
+                {new MakeValidIdCheckParams(validId, validNS, 0, false, oracle(validId.getName(), 0),defaultConf)},
+                {new MakeValidIdCheckParams(validId, validNS, 1, false, oracle(validId.getName(), 1),defaultConf)},
+                {new MakeValidIdCheckParams(validId, null, len - 1, false, oracle(validId.getName(), len - 1),defaultConf)},
+                {new MakeValidIdCheckParams(validId, validNS, len + 1, false, oracle(validId.getName(), 0),defaultConf)},
+                {new MakeValidIdCheckParams(validId, validNS, len, true, "VALI1",defaultConf)},
+                {new MakeValidIdCheckParams(validId, emptyNS, len, true, oracle(validId.getName(), len),defaultConf)},
+                {new MakeValidIdCheckParams(reservedId, validNS, reservedId.getName().length(), false, "RESERVED0",defaultConf)},
+                {new MakeValidIdCheckParams(emptyId, validNS, len, false, oracle(emptyId.getName(), 0),defaultConf)},
+                {new MakeValidIdCheckParams(nullId, validNS, len, false, FAIL,defaultConf)},
+                {new MakeValidIdCheckParams(validId, validNS, len, false, oracle(validId.getName(), 0),defaultConf)},
+
+                // Enhance coverage (adequacy):
+                {new MakeValidIdCheckParams(tab.getIdentifier(), validNS, tab.getIdentifier().getName().length(), true, "VALI1",defaultConf)},
+                {new MakeValidIdCheckParams(seqa.getIdentifier(), validNS, seqa.getIdentifier().getName().length(), true, "SEQUE10",defaultConf)},
+                {new MakeValidIdCheckParams(delimitedId, validNS, delimitedId.getName().length()+2, false, "\"dElImItEd\"", defaultConf)},
+                {new MakeValidIdCheckParams(delimitedId, validNS, delimitedId.getName().length()+2, false, "\"DELIMITED\"", upperConf)},
+                {new MakeValidIdCheckParams(delimitedId, validNS, delimitedId.getName().length()+2, false, "\"delimited\"", lowerConf)},
+                {new MakeValidIdCheckParams(reservedId, validNS, reservedId.getName().length()+1, false, "RESERVED10",defaultConf)},
+
         });
         return args;
     }
 
     @Test
     public void makeIdValidCheckTest() {
+        util.setIdentifierConfiguration(conf);
         try {
             DBIdentifier idMadeValid = util.makeIdentifierValid(sname, set, maxLen, checkForUniqueness);
             assertNotNull("Returned a null item", idMadeValid);
@@ -186,6 +217,6 @@ public class MakeValidIdCheckTest {
      */
     @After
     public void tearDown() {
-        Mockito.reset(mockedIdCImpl);
+        //Mockito.reset(mockedIdCImpl);
     }
 }

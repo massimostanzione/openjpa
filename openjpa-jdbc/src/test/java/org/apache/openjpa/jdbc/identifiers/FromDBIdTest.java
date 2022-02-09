@@ -1,30 +1,37 @@
 package org.apache.openjpa.jdbc.identifiers;
 
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.openjpa.jdbc.identifier.DBIdentifier;
 import org.apache.openjpa.jdbc.identifier.DBIdentifier.DBIdentifierType;
 import org.apache.openjpa.jdbc.identifier.DBIdentifierUtil;
 import org.apache.openjpa.jdbc.identifier.DBIdentifierUtilImpl;
 import org.apache.openjpa.jdbc.identifier.DefaultIdentifierConfiguration;
 import org.apache.openjpa.lib.identifier.IdentifierConfiguration;
+import org.apache.openjpa.lib.identifier.IdentifierUtil;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.mockito.Mockito;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
 import static org.apache.openjpa.jdbc.identifiers.utils.ISW2TestUtils.*;
 import static org.junit.Assert.*;
+import static org.mockito.Mockito.when;
 
 @RunWith(Parameterized.class)
 public class FromDBIdTest {
     // Test parameters.
-    private String name;
-    private DBIdentifierType id;
-    private String expectedBehavior;
+    private static String name;
+    private static DBIdentifierType id;
+    private static IdentifierConfiguration conf;
+    private static String expectedBehavior;
 
     // Class under test.
     private DBIdentifierUtil util;
@@ -35,11 +42,13 @@ public class FromDBIdTest {
     private static class FromDBIdTestParams {
         private String name;
         private DBIdentifierType id;
+        private IdentifierConfiguration conf;
         private String expectedBehavior;
 
-        public FromDBIdTestParams(String name, DBIdentifierType id, String expectedBehavior) {
+        public FromDBIdTestParams(String name, DBIdentifierType id, IdentifierConfiguration conf, String expectedBehavior) {
             this.name = name;
             this.id = id;
+            this.conf = conf;
             this.expectedBehavior = expectedBehavior;
         }
     }
@@ -56,6 +65,7 @@ public class FromDBIdTest {
     private void configure(FromDBIdTestParams params) {
         this.name = params.name;
         this.id = params.id;
+        this.conf = params.conf;
         this.expectedBehavior = params.expectedBehavior;
     }
 
@@ -66,8 +76,6 @@ public class FromDBIdTest {
     @Before
     public void setup() {
         this.util = new DBIdentifierUtilImpl();
-        IdentifierConfiguration conf = new DefaultIdentifierConfiguration();
-        this.util.setIdentifierConfiguration(conf);
     }
 
     /**
@@ -92,21 +100,61 @@ public class FromDBIdTest {
      */
     @Parameterized.Parameters
     public static Collection<FromDBIdTestParams[]> getTestParameters() {
+
+        IdentifierConfiguration config = new DefaultIdentifierConfiguration();
         FromDBIdTestParams[] allParams =
                 new FromDBIdTestParams[]{
-                        new FromDBIdTestParams(VALID_STRING, DBIdentifierType.DEFAULT, computeExpected(VALID_STRING, DBIdentifierType.DEFAULT)),
-                        new FromDBIdTestParams(EMPTY, DBIdentifierType.DEFAULT, computeExpected(EMPTY, DBIdentifierType.DEFAULT)),
-                        new FromDBIdTestParams(null, DBIdentifierType.DEFAULT, null),
-                        new FromDBIdTestParams(VALID_STRING, null, FAIL),
-                        new FromDBIdTestParams(VALID_STRING, DBIdentifierType.NULL, FAIL),
+                        new FromDBIdTestParams(VALID_STRING, DBIdentifierType.DEFAULT, config, computeExpected(VALID_STRING, DBIdentifierType.DEFAULT)),
+                        new FromDBIdTestParams(EMPTY, DBIdentifierType.DEFAULT, config, computeExpected(EMPTY, DBIdentifierType.DEFAULT)),
+                        new FromDBIdTestParams(null, DBIdentifierType.DEFAULT, config, null),
+                        new FromDBIdTestParams(VALID_STRING, null, config, FAIL),
+                        new FromDBIdTestParams(VALID_STRING, DBIdentifierType.NULL, config, FAIL),
                 };
+
         // Since DBIdentifierType is an enumeration, iterate automatically through it
         for (DBIdentifierType idtype : DBIdentifierType.values()) {
             if (idtype != DBIdentifierType.NULL && idtype != DBIdentifierType.DEFAULT) {
-                FromDBIdTestParams moreParams = new FromDBIdTestParams(VALID_STRING, idtype, computeExpected(VALID_STRING, idtype));
+                FromDBIdTestParams moreParams = new FromDBIdTestParams(VALID_STRING, idtype, config, computeExpected(VALID_STRING, idtype));
                 allParams = ArrayUtils.add(allParams, moreParams);
             }
         }
+
+        //Enhance coverage (adequacy):
+        Pair<String, String>[] combinations =
+                new ImmutablePair[]{
+                        ImmutablePair.of(IdentifierUtil.CASE_LOWER, IdentifierUtil.CASE_LOWER),
+                        ImmutablePair.of(IdentifierUtil.CASE_PRESERVE, IdentifierUtil.CASE_LOWER),
+                        ImmutablePair.of(IdentifierUtil.CASE_PRESERVE, IdentifierUtil.CASE_UPPER),
+                        ImmutablePair.of(IdentifierUtil.CASE_LOWER, IdentifierUtil.CASE_UPPER),
+                        ImmutablePair.of(IdentifierUtil.CASE_UPPER, IdentifierUtil.CASE_LOWER),
+                        ImmutablePair.of(IdentifierUtil.CASE_UPPER, IdentifierUtil.CASE_PRESERVE),
+                        ImmutablePair.of(IdentifierUtil.CASE_LOWER, IdentifierUtil.CASE_PRESERVE),
+                };
+        List mocks = new ArrayList<IdentifierConfiguration>();
+        for (Pair p : combinations) {
+            IdentifierConfiguration customCaseMock = Mockito.spy(DefaultIdentifierConfiguration.class);
+            when(customCaseMock.getDelimitedCase()).thenReturn(p.getLeft().toString());
+            when(customCaseMock.getSchemaCase()).thenReturn(p.getRight().toString());
+            mocks.add(customCaseMock);
+        }
+        for (Object mock : mocks) {
+            FromDBIdTestParams p = new FromDBIdTestParams(VALID_STRING, DBIdentifierType.DEFAULT, (IdentifierConfiguration) mock, computeExpected(VALID_STRING, DBIdentifierType.DEFAULT));
+            allParams = ArrayUtils.add(allParams, p);
+        }
+
+
+        IdentifierConfiguration delIdentMock = Mockito.spy(DefaultIdentifierConfiguration.class);
+        when(delIdentMock.getSupportsDelimitedIdentifiers()).thenReturn(false);
+        FromDBIdTestParams delIdentParam = new FromDBIdTestParams(VALID_STRING, DBIdentifierType.DEFAULT, (IdentifierConfiguration) delIdentMock, computeExpected(VALID_STRING, DBIdentifierType.DEFAULT));
+        allParams = ArrayUtils.add(allParams, delIdentParam);
+
+        IdentifierConfiguration delimitAllMock = Mockito.spy(DefaultIdentifierConfiguration.class);
+        when(delimitAllMock.getDelimitedCase()).thenReturn("cAmEl cAsE");
+        when(delimitAllMock.getSchemaCase()).thenReturn("different");
+        when(delimitAllMock.delimitAll()).thenReturn(true);
+        FromDBIdTestParams delimitAllMockCase = new FromDBIdTestParams("cAmEl cAsE", DBIdentifierType.DEFAULT, delimitAllMock, computeExpected("cAmEl cAsE", DBIdentifierType.DEFAULT));
+        allParams = ArrayUtils.add(allParams, delimitAllMockCase);
+
         FromDBIdTestParams[][] arr = new FromDBIdTestParams[][]{};
         for (FromDBIdTestParams p : allParams) {
             arr = ArrayUtils.add(arr, new FromDBIdTestParams[]{p});
@@ -117,9 +165,10 @@ public class FromDBIdTest {
 
     @Test
     public void fromDBIdTest() {
+        this.util.setIdentifierConfiguration(conf);
         DBIdentifier ret = null;
         try {
-            ret = util.fromDBName(name, id);
+            ret = this.util.fromDBName(name, id);
             assertNotNull("Returned a null object.", ret);
             assertTrue(ret instanceof DBIdentifier);
             assertEquals("Different name received.", expectedBehavior, ret.getName());
