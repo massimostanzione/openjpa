@@ -16,12 +16,12 @@ jobs:
           command: |
             mkdir -p /tmp/openjpa-jdbc/pit-reports
             mkdir -p /tmp/openjpa-lib/pit-reports
-            cp -r ~/project/openjpa-jdbc/target/pit-reports /tmp/openjpa/opejpa-jdbc/pit-reports
-            cp -r ~/project/openjpa-lib/target/pit-reports /tmp/openjpa/opejpa-lib/pit-reports
+            cp -r ~/project/openjpa-jdbc/target/pit-reports /tmp/openjpa/openjpa-jdbc/pit-reports
+            cp -r ~/project/openjpa-lib/target/pit-reports /tmp/openjpa/openjpa-lib/pit-reports
       - store_artifacts:
-          path: /tmp/openjpa/opejpa-jdbc/pit-reports
+          path: /tmp/openjpa/openjpa-jdbc/pit-reports
       - store_artifacts:
-          path: /tmp/openjpa/opejpa-lib/pit-reports
+          path: /tmp/openjpa/openjpa-lib/pit-reports
 
 # invoking jobs via workflows
 workflows:
