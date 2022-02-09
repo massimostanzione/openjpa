@@ -1,0 +1,20 @@
+version: 2.1
+
+# jobs definitions
+jobs:
+  test-and-analysis:
+    docker:
+      - image: cimg/openjdk:11.0
+    resource_class: medium
+    steps:
+      - checkout
+      - run:
+          name: Analyze on SonarCloud
+          command: mvn clean test sonar:sonar -Dsonar.projectKey=massimostanzione_openjpa --projects .,openjpa-jdbc,openjpa-lib
+
+# invoking jobs via workflows
+workflows:
+  main:
+    jobs:
+      - test-and-analysis:
+          context: SonarCloud
