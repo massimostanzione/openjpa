@@ -14,8 +14,8 @@ jobs:
       - run:
           name: Prepare artifacts (Mutation testing)
           command: |
-            mkdir -p /tmp/openjpa-jdbc/pit-reports
-            mkdir -p /tmp/openjpa-lib/pit-reports
+            mkdir -p /tmp/openjpa/openjpa-jdbc/pit-reports
+            mkdir -p /tmp/openjpa/openjpa-lib/pit-reports
             cp -r ~/project/openjpa-jdbc/target/pit-reports /tmp/openjpa/openjpa-jdbc/pit-reports
             cp -r ~/project/openjpa-lib/target/pit-reports /tmp/openjpa/openjpa-lib/pit-reports
       - store_artifacts:
