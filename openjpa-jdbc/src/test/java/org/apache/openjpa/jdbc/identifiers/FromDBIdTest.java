@@ -85,7 +85,7 @@ public class FromDBIdTest {
      * @param id   identificator type
      * @return the expected test result
      */
-    private static String computeExpected(String name, DBIdentifierType id) {
+    private static String oracle(String name, DBIdentifierType id) {
         if (id == DBIdentifierType.COLUMN_DEFINITION || id == DBIdentifierType.CONSTANT || name == EMPTY_STRING)
             return name;
         // Append DefaultIdentifierConfiguration's delimiters
@@ -104,8 +104,8 @@ public class FromDBIdTest {
         IdentifierConfiguration config = new DefaultIdentifierConfiguration();
         FromDBIdTestParams[] allParams =
                 new FromDBIdTestParams[]{
-                        new FromDBIdTestParams(VALID_STRING, DBIdentifierType.DEFAULT, config, computeExpected(VALID_STRING, DBIdentifierType.DEFAULT)),
-                        new FromDBIdTestParams(EMPTY, DBIdentifierType.DEFAULT, config, computeExpected(EMPTY, DBIdentifierType.DEFAULT)),
+                        new FromDBIdTestParams(VALID_STRING, DBIdentifierType.DEFAULT, config, oracle(VALID_STRING, DBIdentifierType.DEFAULT)),
+                        new FromDBIdTestParams(EMPTY, DBIdentifierType.DEFAULT, config, oracle(EMPTY, DBIdentifierType.DEFAULT)),
                         new FromDBIdTestParams(null, DBIdentifierType.DEFAULT, config, null),
                         new FromDBIdTestParams(VALID_STRING, null, config, FAIL),
                         new FromDBIdTestParams(VALID_STRING, DBIdentifierType.NULL, config, FAIL),
@@ -114,7 +114,7 @@ public class FromDBIdTest {
         // Since DBIdentifierType is an enumeration, iterate automatically through it
         for (DBIdentifierType idtype : DBIdentifierType.values()) {
             if (idtype != DBIdentifierType.NULL && idtype != DBIdentifierType.DEFAULT) {
-                FromDBIdTestParams moreParams = new FromDBIdTestParams(VALID_STRING, idtype, config, computeExpected(VALID_STRING, idtype));
+                FromDBIdTestParams moreParams = new FromDBIdTestParams(VALID_STRING, idtype, config, oracle(VALID_STRING, idtype));
                 allParams = ArrayUtils.add(allParams, moreParams);
             }
         }
@@ -138,21 +138,21 @@ public class FromDBIdTest {
             mocks.add(customCaseMock);
         }
         for (Object mock : mocks) {
-            FromDBIdTestParams p = new FromDBIdTestParams(VALID_STRING, DBIdentifierType.DEFAULT, (IdentifierConfiguration) mock, computeExpected(VALID_STRING, DBIdentifierType.DEFAULT));
+            FromDBIdTestParams p = new FromDBIdTestParams(VALID_STRING, DBIdentifierType.DEFAULT, (IdentifierConfiguration) mock, oracle(VALID_STRING, DBIdentifierType.DEFAULT));
             allParams = ArrayUtils.add(allParams, p);
         }
 
 
         IdentifierConfiguration delIdentMock = Mockito.spy(DefaultIdentifierConfiguration.class);
         when(delIdentMock.getSupportsDelimitedIdentifiers()).thenReturn(false);
-        FromDBIdTestParams delIdentParam = new FromDBIdTestParams(VALID_STRING, DBIdentifierType.DEFAULT, (IdentifierConfiguration) delIdentMock, computeExpected(VALID_STRING, DBIdentifierType.DEFAULT));
+        FromDBIdTestParams delIdentParam = new FromDBIdTestParams(VALID_STRING, DBIdentifierType.DEFAULT, (IdentifierConfiguration) delIdentMock, oracle(VALID_STRING, DBIdentifierType.DEFAULT));
         allParams = ArrayUtils.add(allParams, delIdentParam);
 
         IdentifierConfiguration delimitAllMock = Mockito.spy(DefaultIdentifierConfiguration.class);
         when(delimitAllMock.getDelimitedCase()).thenReturn("cAmEl cAsE");
         when(delimitAllMock.getSchemaCase()).thenReturn("different");
         when(delimitAllMock.delimitAll()).thenReturn(true);
-        FromDBIdTestParams delimitAllMockCase = new FromDBIdTestParams("cAmEl cAsE", DBIdentifierType.DEFAULT, delimitAllMock, computeExpected("cAmEl cAsE", DBIdentifierType.DEFAULT));
+        FromDBIdTestParams delimitAllMockCase = new FromDBIdTestParams("cAmEl cAsE", DBIdentifierType.DEFAULT, delimitAllMock, oracle("cAmEl cAsE", DBIdentifierType.DEFAULT));
         allParams = ArrayUtils.add(allParams, delimitAllMockCase);
 
         FromDBIdTestParams[][] arr = new FromDBIdTestParams[][]{};
