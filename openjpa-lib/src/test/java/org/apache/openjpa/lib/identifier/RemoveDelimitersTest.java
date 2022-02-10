@@ -18,8 +18,8 @@ import static org.mockito.Mockito.when;
 @RunWith(Parameterized.class)
 public class RemoveDelimitersTest {
     // Test parameters.
-    private static IdentifierConfiguration currentConf;
-    private static IdentifierConfiguration newConf;
+    private static IdentifierConfiguration confTo;
+    private static IdentifierConfiguration confFrom;
     private static String rule;
     private static String fullName;
     private static String expectedBehavior;
@@ -36,16 +36,16 @@ public class RemoveDelimitersTest {
      * Inner class containing the test parameters.
      */
     private static class RemoveDelimitersTestParams {
-        private IdentifierConfiguration currentConf;
-        private IdentifierConfiguration newConf;
+        private IdentifierConfiguration confTo;
+        private IdentifierConfiguration confFrom;
         private String rule;
         private String fullName;
         private String expectedBehavior;
 
-        public RemoveDelimitersTestParams(IdentifierConfiguration currentConf, IdentifierConfiguration newConf,
+        public RemoveDelimitersTestParams(IdentifierConfiguration confTo, IdentifierConfiguration confFrom,
                                           String rule, String fullName, String expectedBehavior) {
-            this.currentConf = currentConf;
-            this.newConf = newConf;
+            this.confTo = confTo;
+            this.confFrom = confFrom;
             this.rule = rule;
             this.fullName = fullName;
             this.expectedBehavior = expectedBehavior;
@@ -62,8 +62,8 @@ public class RemoveDelimitersTest {
      * @param params test parameters
      */
     private void configure(RemoveDelimitersTestParams params) {
-        this.currentConf = params.currentConf;
-        this.newConf = params.newConf;
+        this.confTo = params.confTo;
+        this.confFrom = params.confFrom;
         this.rule = params.rule;
         this.fullName = params.fullName;
         this.expectedBehavior = params.expectedBehavior;
@@ -156,8 +156,8 @@ public class RemoveDelimitersTest {
     @Test
     public void makeIdValidCheckTest() {
         try {
-            this.idUtils.setIdentifierConfiguration(currentConf);
-            String ret = this.idUtils.removeDelimiters(newConf, rule, fullName);
+            this.idUtils.setIdentifierConfiguration(confTo);
+            String ret = this.idUtils.removeDelimiters(confFrom, rule, fullName);
             assertEquals(expectedBehavior, ret);
             if (fullName != null)
                 assertEquals(expectedBehavior.length(), ret.length());
